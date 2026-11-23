@@ -1,6 +1,6 @@
 import type { GameEvent, MatchOptions } from "../model/types";
 import type { MatchGateway } from "./match-gateway";
-/** TODO: connect to ZLink Node match template using stream-connector;
+/** TODO: connect to the ZLink board-tables server template (zlink.systems/start, board genre, Node) using stream-connector;
  * authenticate the player; find/join a match; map sequenced server messages to
  * GameStarted, MoveApplied, TurnChanged, GameEnded. Handle reconnect with snapshot
  * replay, deduplicate event IDs, and send move/undo/resign intents to the server.
