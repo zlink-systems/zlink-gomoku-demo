@@ -57,17 +57,19 @@ src/
 
 ## 멀티 플레이 붙이기
 
-ZLink 시작 페이지에서 템플릿을 받고, 이 저장소와 템플릿을 AI 코딩 에이전트에게 주어 멀티 플레이 게임을 만들게 합니다.
+ZLink 시작 페이지에서 서버 템플릿을 받고, 이 저장소와 템플릿을 AI 코딩 에이전트에게 주어 멀티 플레이 게임을 만들게 합니다. 에이전트는 작업을 진행하면서 템플릿을 이미 받아 두었는지(받았다면 그 위치)와 서버 언어를 사용자에게 물어보고, 답에 맞춰 만듭니다.
 
 ### 1. 템플릿 받기
 
 1. [zlink.systems/start](https://zlink.systems/start)를 엽니다.
 2. 게임 장르에서 **보드**를 고릅니다. 서버 구조는 `board-tables`(Session node + Table node, Redis Location Store)입니다.
-3. 서버 언어는 **Node.js**를 고릅니다. 클라이언트와 같은 TypeScript라서 이 저장소의 `model/` 규칙을 서버에서 그대로 쓸 수 있습니다.
-4. 클라이언트는 **웹 브라우저**를 고릅니다. 브라우저 클라이언트는 TypeScript stream-connector(`@zlink-systems/stream-connector`)를 씁니다. 페이지의 설치·브라우저 가이드 링크를 함께 엽니다.
-5. 서버 템플릿을 내려받아 압축을 풉니다(`my-game/`). 템플릿의 `README.md`와 `AGENTS.md`가 실행 방법과 확장 지점을 설명합니다.
+3. 서버 언어를 고릅니다. 페이지에 나오는 언어(Node.js, Java 등) 가운데 원하는 것을 선택하면 그 언어의 템플릿을 받습니다.
+4. 클라이언트는 **웹 브라우저**를 고릅니다. 브라우저 클라이언트는 TypeScript stream-connector(`@zlink-systems/stream-connector`)를 쓰며, 버전은 서버 템플릿에 고정된 Framework 버전과 같게 맞춥니다. 페이지의 설치·브라우저 가이드 링크를 함께 엽니다.
+5. 서버 템플릿을 내려받아 압축을 풉니다(`my-game/`). 템플릿의 `README.md`와 `AGENTS.md`가 실행 방법과 확장 지점을 설명하고, `zlink.structure.json`의 `language`가 템플릿 언어입니다.
 
-폴더를 다음처럼 둡니다.
+서버 실행에 필요한 도구(JDK, Docker 등)는 고른 언어의 템플릿 README에 적혀 있습니다. 클라이언트는 Node.js 22.12 이상이 필요합니다.
+
+폴더는 다음처럼 두는 것을 권장합니다. 다른 곳에 받아 두었다면 에이전트가 물을 때 그 위치를 알려 주면 됩니다.
 
 ```text
 work/
@@ -81,48 +83,72 @@ work/
 
 ```text
 `zlink-gomoku-demo/`는 컴퓨터와 두는 싱글 플레이 오목(React 19 + Vite + strict TypeScript)이고,
-`my-game/`은 zlink.systems/start에서 받은 ZLink 보드 장르 서버 템플릿(board-tables, Node.js)이다.
+서버는 zlink.systems/start에서 받는 ZLink 보드 장르 서버 템플릿(board-tables)으로 만든다(이하 my-game/).
 이 둘로 두 사람이 온라인에서 대국하는 멀티 플레이 오목을 만들어 줘. 싱글 플레이(컴퓨터와 대국)는 지금처럼 동작해야 한다.
 
+진행 중에 사용자에게 묻기(서버 코드를 고치기 전에 반드시)
+1. 서버 템플릿: 먼저 "zlink.systems/start에서 서버 템플릿을 이미 받아 두셨나요?"라고 묻는다.
+   - 받아 두었다면 압축을 푼 폴더 위치를 알려 달라고 하고, 그 폴더를 이후 my-game/ 자리에 쓴다(work/ 아래가 아니어도 된다).
+     그 폴더의 zlink.structure.json에서 id(board-tables인지)와 language를 확인해 사용자에게 알려 준다.
+   - 받아 두지 않았다면 zlink.systems/start에서 장르 "보드", 원하는 서버 언어, 클라이언트 "웹 브라우저"를 골라 받은 뒤
+     압축을 푼 위치를 알려 달라고 안내하고 기다린다.
+2. 서버 언어: 사용자에게 "서버 언어를 무엇으로 할까요?"라고 묻는다(zlink.systems/start에서 고를 수 있는 언어 중에서).
+   받아 둔 템플릿이 있으면 그 언어를 함께 알려 준다. 답한 언어가 템플릿의 언어와 다르면 그 언어로 템플릿을 다시 받아 위치를
+   알려 달라고 안내하고 기다린다. 템플릿을 직접 다른 언어로 옮겨 만들지 않는다.
+3. 그 밖에도 진행 중에 정해야 할 것이 생기면(예: 템플릿에 없는 구조를 새로 둘지) 추측하지 말고 사용자에게 묻는다.
+아래에서 my-game/은 1번에서 정한 서버 템플릿 폴더를 뜻한다.
+
 먼저 읽을 것
-- my-game/README.md, my-game/AGENTS.md: 템플릿 구조, 요청 흐름, 확장 지점, 실행·검증 명령. 템플릿의 규칙(상태는 TableState가 소유,
-  Framework 콜백과 I/O는 server/table/infrastructure/, 메시지는 server/shared/messages.ts, 클라이언트 요청은 session.ts 허용 목록)을 그대로 따른다.
+- my-game/README.md, my-game/AGENTS.md, my-game/zlink.structure.json: 노드 구성, 요청 흐름, 확장 지점, 실행·검증 명령.
+  템플릿의 규칙(게임 상태를 소유하는 곳, Framework 콜백과 I/O를 두는 곳, 공유 메시지를 두는 곳, Session의 클라이언트 요청 허용 목록)을
+  그대로 따른다. 허용 목록에 없는 패킷은 packet-not-allowed로 거절한다.
 - zlink-gomoku-demo/README.md, zlink-gomoku-demo/AGENTS.md, src/features/gomoku_game/gateway/match-gateway.ts:
   화면은 의도(requestMove·requestUndo·resign)만 보내고 게이트웨이 이벤트(GameStarted·MoveApplied·TurnChanged·GameEnded)로만 상태를 바꾼다.
-- ZLink 공식 문서: https://docs.zlink.systems/llms.txt, Node 서버 가이드, stream-connector 브라우저 가이드. 템플릿 package.json에 고정된 버전의 API만 쓴다.
+- ZLink 공식 문서: https://docs.zlink.systems/llms.txt, 고른 언어의 서버 가이드, TypeScript stream-connector 브라우저 가이드.
+  템플릿에 고정된 버전의 API만 쓴다.
 
 서버(my-game/)
-1. 게임 규칙: 템플릿의 카드 게임 규칙을 오목으로 바꾼다. 판정은 zlink-gomoku-demo/src/features/gomoku_game/model/의 rules.ts·types.ts를
-   서버로 가져와 그대로 쓴다(15×15, 다섯 개 이상 이으면 승리, 장목 인정, 금수 없음, 바둑판이 차면 무승부). TableState가 바둑판·차례·수 목록·
-   흑백 배정·대국 상태를 소유하고, 착수가 들어오면 서버가 참가자·차례·좌표·빈 칸·대국 종료 여부를 검증한 뒤 판정한다. 클라이언트가 보낸 승패는 믿지 않는다.
+1. 게임 규칙: 템플릿의 카드 게임 규칙을 오목으로 바꾼다(15×15, 다섯 개 이상 이으면 승리, 장목 인정, 금수 없음, 바둑판이 차면 무승부).
+   판정은 zlink-gomoku-demo/src/features/gomoku_game/model/의 rules.ts·types.ts를 기준으로 한다. 서버가 TypeScript면 그대로
+   가져와 쓰고, 다른 언어면 같은 동작으로 옮겨 상태와 분리된 순수 규칙으로 두며 rules.test.ts와 같은 경우를 그 언어에서도 검증한다.
+   TableState가 바둑판·차례·수 목록·흑백 배정·대국 상태를 소유하고, 착수가 들어오면 서버가 참가자·차례·좌표·빈 칸·대국 종료 여부를
+   검증한 뒤 판정한다. 클라이언트가 보낸 승패는 믿지 않는다. 쓰지 않게 된 카드 게임 메시지·상수는 지운다.
 2. 테이블: 한 Table Spot = 오목 판 하나, 자리 2개. 먼저 앉은 사람이 흑(선공), 두 번째가 백. 두 자리가 차면 대국을 시작한다.
-3. 매칭: 템플릿은 클라이언트가 tableId를 정해 JoinTableRequest를 보낸다. 여기에 두 가지 입장을 더한다.
-   - 빠른 대전: 대기열에서 두 사람을 짝지어 새 tableId를 정하고 두 사람에게 알린다. 대기열을 소유하는 곳은 한 곳만 둔다(ZLink Spot 하나).
+   템플릿에 재배치(drain·relocation)가 있으면 스냅숏이 오목 상태 전체(남은 시간 포함)를 옮기게 한다.
+3. 매칭: 템플릿은 JoinTableRequest로 이름 있는 테이블에 들어간다. 템플릿에 Matchmaker(FindMatch·CancelMatch)가 있으면 그것을 쓰고,
+   없으면 대기열을 소유하는 ZLink Spot 하나를 둔다. 두 가지 입장을 지원한다.
+   - 빠른 대전: 대기열에서 두 사람을 짝지어 새 tableId를 정하고 두 사람에게 알린다(내 색, 상대 닉네임 포함). 대기열 소유는 한 곳만 둔다.
    - 방 코드: 한 사람이 방을 만들면 짧은 코드(6자리)를 받고, 다른 사람이 그 코드로 같은 tableId에 들어온다.
-   대기 취소, 대기 중 연결 끊김(대기열에서 뺌)을 처리한다.
-4. 메시지(server/shared/messages.ts, 클래스로 타입 정의): 빠른 대전 요청·취소, 방 만들기·코드로 입장, 매칭됨(tableId, 내 색, 상대 이름),
+     코드 발급·조회·만료도 대기열과 같은 한 곳이 소유한다.
+   대기 취소, 대기 중 연결 끊김(대기열·방 코드에서 뺌), 대기 만료를 처리한다.
+4. 메시지(고른 언어의 공유 메시지 위치, 타입으로 정의): 빠른 대전 요청·취소, 방 만들기·코드로 입장, 매칭됨(tableId, 내 색, 상대 이름),
    착수 요청(handNumber·x·y), 착수 적용(수 번호·x·y·색), 차례 바뀜(색·남은 시간), 대국 끝(승자·이긴 줄·이유: five/draw/resign/timeout/leave),
-   기권, 무르기 요청·응답·결과, 재대국 요청·응답, 상대 연결 상태, 거절(ActionRejected: reason·retryAfterMs). 모든 판 이벤트에 handNumber와
-   순서 번호를 넣어 클라이언트가 중복·순서 어긋남을 버릴 수 있게 한다.
-5. 시간: 한 수 30초. 시간이 지나면 그 사람이 진다(timeout). 시간 판정은 TableState 한 곳에서 단조 시계로 하고 남은 시간을 스냅숏에 넣는다.
+   기권, 무르기 요청·응답·결과, 재대국 요청·응답, 상대 연결 상태, 거절(ActionRejected: reason·retryAfterMs — 템플릿의 JSON 계약 그대로).
+   모든 판 이벤트에 handNumber와 순서 번호를 넣어 클라이언트가 중복·순서 어긋남을 버릴 수 있게 한다. 새 클라이언트 요청은 Session 허용 목록에 더한다.
+5. 시간: 한 수 30초. 시간이 지나면 그 사람이 진다(timeout). 시간 판정은 Table 한 곳에서 단조 시계로 하고, 시험용 시계는 Table 생성 때만 넘기며,
+   남은 시간을 스냅숏(재배치 상태 포함)에 넣는다.
 6. 무르기: 상대 동의제. 요청하면 상대에게 묻고, 수락하면 요청한 사람의 마지막 수(그 뒤 상대 수 포함)를 되돌린다. 10초 안에 답이 없거나
    거절하면 그대로 둔다. 대국마다 한 사람당 3번까지.
 7. 연결 끊김·재접속: 템플릿의 재접속(같은 Actor로 다시 바인딩, Rejoin 처리)을 그대로 쓴다. 끊긴 사람의 차례 시간은 계속 흐르고,
    60초 안에 돌아오지 않으면 그 사람이 진다(leave). 돌아오면 지금 바둑판·차례·남은 시간을 한 번에 받는다.
-8. 재대국: 대국이 끝나면 두 사람 모두 재대국을 누르면 같은 테이블에서 흑백을 바꿔 새 판을 시작한다. 한 사람이 나가면 남은 사람에게 알린다.
-9. 템플릿의 table·reconnect·update 시나리오(e2e/client.mts)를 오목에 맞게 고치고 아래 시나리오를 더한다: 빠른 대전 두 명 매칭,
-   방 코드 입장, 다섯 줄 승리, 차례가 아닌 착수·이미 놓인 칸 착수 거절(상태 그대로), 시간 초과 패배, 무르기 수락·거절, 재접속 뒤 같은 판 이어 두기,
-   재대국. e2e/domain.test.ts에 오목 규칙의 경계 시험을 더한다.
+8. 재대국: 대국이 끝나면 두 사람 모두 재대국을 누르면 같은 테이블에서 흑백을 바꿔 새 판(handNumber 증가)을 시작한다. 한 사람이 나가면 남은 사람에게 알린다.
+9. 시험: 템플릿의 기존 e2e 시나리오를 오목에 맞게 고치고(zlink.structure.json의 scenarios 목록도 함께) 아래 시나리오를 더한다:
+   빠른 대전 두 명 매칭, 방 코드 입장, 다섯 줄 승리, 차례가 아닌 착수·이미 놓인 칸 착수 거절(상태 그대로), 시간 초과 패배,
+   무르기 수락·거절, 재접속 뒤 같은 판 이어 두기, 재대국. 오목 규칙의 경계 시험(네 방향, 가장자리, 장목, 무승부, 범위 밖·중복 좌표)을 더한다.
 
 클라이언트(zlink-gomoku-demo/)
-1. OnlineMatchGateway(src/features/gomoku_game/gateway/online-match-gateway.ts)를 MatchGateway 계약 그대로 구현한다.
-   stream-connector로 서버(Session node의 ws:// 주소)에 연결하고, 서버 메시지를 GameStarted·MoveApplied·TurnChanged·GameEnded로 바꿔
-   구독자에게 보낸다. requestMove는 착수 요청만 보내고 돌은 서버의 착수 적용을 받은 뒤에만 놓는다(낙관적 반영 금지).
+1. npm install @zlink-systems/stream-connector@<서버 템플릿의 Framework 버전>으로 버전을 정확히 고정해 설치한다.
+2. OnlineMatchGateway(src/features/gomoku_game/gateway/online-match-gateway.ts)를 MatchGateway 계약 그대로 구현한다.
+   stream-connector로 서버(Session node의 ws:// 주소 — 서버 실행 때 "Server ready:" 줄 등에 나오는 실제 주소)에 연결하고,
+   푸시 핸들러를 먼저 등록한 뒤 첫 패킷을 보낸다. 서버 메시지를 GameStarted·MoveApplied·TurnChanged·GameEnded로 바꿔 구독자에게 보낸다.
+   requestMove는 착수 요청만 보내고 돌은 서버의 착수 적용을 받은 뒤에만 놓는다(낙관적 반영 금지).
    handNumber·순서 번호로 중복과 지난 판 이벤트를 버린다. dispose에서 구독과 연결을 닫는다.
-   int64 필드는 JSON에서 10진 문자열로 오므로 템플릿 e2e/client.mts처럼 바꿔 읽는다.
-2. 게이트웨이에 온라인 전용 기능(매칭, 무르기 요청·응답, 재대국, 상대 연결 상태)을 더할 때는 MatchGateway를 넓히지 말고 온라인 전용
+   64비트 정수 필드는 JSON에서 10진 문자열로 올 수 있으니 숫자·문자열 둘 다 받아 바꿔 읽는다(템플릿 e2e 클라이언트를 참고).
+3. 게이트웨이에 온라인 전용 기능(매칭, 무르기 요청·응답, 재대국, 상대 연결 상태)을 더할 때는 MatchGateway를 넓히지 말고 온라인 전용
    인터페이스를 따로 둔다. view/의 바둑판·돌·HUD·결과 화면은 고치지 않고 그대로 쓴다.
-3. 서버 주소는 Vite 환경 변수(VITE_ZLINK_STREAM_URL)로 받는다. 값이 없으면 홈의 온라인 대전 버튼을 비활성화하고 "서버 주소가 없습니다"를 보인다.
+4. 서버 주소는 Vite 환경 변수(VITE_ZLINK_STREAM_URL)로 받는다. 값이 없으면 홈의 온라인 대전 버튼을 비활성화하고 "서버 주소가 없습니다"를 보인다.
+   기본 Session 설정이 루프백에서만 열리면, 휴대폰 등 다른 기기로 시험할 때 Session 설정의 stream 주소를 닿는 주소로 바꾼다.
+   HTTPS 페이지에서는 wss:// 배포가 필요하다.
 
 화면(지금 디자인과 같은 톤 — 짙은 청록 배경, 나무 바둑판, 금색 강조, 한국어)
 1. 홈: "온라인 대전" 버튼을 켠다. 누르면 닉네임 입력(2~10자, 브라우저에 기억)과 세 가지 선택이 있는 패널을 연다:
@@ -141,14 +167,15 @@ work/
 7. 휴대폰 세로 화면(390×844)에서도 겹치거나 잘리는 곳이 없게 한다.
 
 완료 조건
-- my-game: 템플릿 README의 빌드·e2e 명령(./run-e2e.sh 또는 run-e2e.ps1)이 모든 시나리오 통과, npm run typecheck·lint 통과.
+- my-game: 템플릿 README의 빌드·e2e 명령(./run-e2e.sh 또는 run-e2e.ps1, 구조 검사 포함)이 모든 시나리오와 규칙 경계 시험을 통과한다.
+  템플릿 README에 타입 검사·린트 명령이 있으면 그것도 통과한다.
 - zlink-gomoku-demo: npm run build·test·typecheck·lint 통과. OnlineMatchGateway 단위 시험(가짜 연결로 이벤트 매핑·중복 무시·순서)을 더한다.
-- 서버를 로컬로 띄우고 브라우저 두 개(데스크톱·모바일 크기)로 빠른 대전 → 대국 → 무르기 → 승리 → 재대국 → 한쪽 새로고침 뒤 재접속까지
-  실제로 해 보고, 화면 캡처를 남긴다.
-- 무엇을 바꿨는지와 실행 방법을 두 저장소의 README에 적는다.
+- 서버를 로컬로 띄우고(run-server.sh 또는 run-server.ps1) 브라우저 두 개(데스크톱·모바일 크기)로 빠른 대전 → 대국 → 무르기 → 승리 →
+  재대국 → 한쪽 새로고침 뒤 재접속까지 실제로 해 보고, 화면 캡처를 남긴다.
+- 고른 서버 언어, 무엇을 바꿨는지, 실행 방법을 두 저장소의 README에 적는다.
 ```
 
-AI가 만든 결과는 위 완료 조건으로 확인합니다. 서버 규칙과 상태는 서버가 소유하고, 클라이언트는 서버가 보낸 이벤트만 그린다는 것이 이 데모의 핵심 구조입니다.
+AI가 만든 결과는 위 완료 조건으로 확인합니다. 서버 언어가 무엇이든 서버 규칙과 상태는 서버가 소유하고, 클라이언트는 서버가 보낸 이벤트만 그린다는 것이 이 데모의 핵심 구조입니다.
 
 ## 검증 범위
 
